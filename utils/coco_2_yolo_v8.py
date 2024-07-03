@@ -2,7 +2,86 @@ import json
 import os
 import shutil
 import yaml
+from funcy import lmap, lfilter, lremove
+from sklearn.model_selection import train_test_split
 
+def split_coco_annotations(annotations_path, train_val_test_split: tuple = (0.75, 0.15, 0.1),
+                           train_json_name="train.json", valid_json_name="valid.json", test_json_name="test.json",
+                            filter_unannotated=False):
+  """
+  Splits COCO annotations into training, validation, and test sets.
+
+  Args:
+      annotations_path: Path to the COCO annotations file.
+      train_val_test_split: 
+        - Ratios of images for training,validation and test set (0.75, 0.1, 0.15).
+        - It can be tuple of 0 to 3 elements.
+        - If the tupple has 2 elements then the remaining or no data will be for test.
+        - If the tupple has 1 element then the remaining will go for validation and no data will be for test.
+      train_json_name: Filename to store training annotations (default: "train.json").
+      valid_json_name: Filename to store validation annotations (default: "valid.json").
+      test_json_name: Filename to store test annotations (default: "test.json").
+      filter_unannotated: Whether to keep only images with annotations (default: False).
+
+  Returns:
+      None
+  """
+  if type(train_val_test_split) == float:
+    len_tvt =  1
+  else:
+    len_tvt =  len(train_val_test_split)
+  if len_tvt == 3:
+    train_ratio, valid_ratio, test_ratio = train_val_test_split
+    if train_ratio + valid_ratio + test_ratio != 1:
+      raise ValueError("train_val_test_split must add up to 1.")
+  elif len_tvt == 2:
+    train_ratio, valid_ratio = train_val_test_split
+    test_ratio = round(1 - train_ratio - valid_ratio,2)
+    
+  elif len_tvt == 1:
+    train_ratio = train_val_test_split
+    valid_ratio = round(1 - train_ratio,2)
+    test_ratio = 0
+  else:
+    raise ValueError("train_val_test_split must be a tuple of 0 to 3 elements.")
+
+  with open(annotations_path, 'rt', encoding='UTF-8') as annotations:
+    coco = json.load(annotations)
+    info = coco['info']
+    licenses = coco['licenses']
+    images = coco['images']
+    annotations = coco['annotations']
+    categories = coco['categories']
+
+    number_of_images = len(images)
+
+    if filter_unannotated:
+      images_with_annotations = lmap(lambda a: int(a['image_id']), annotations)
+      images = lremove(lambda i: i['id'] not in images_with_annotations, images)
+
+    train_before, test = train_test_split(images, test_size=test_ratio)
+
+    ratio_remaining = 1 - test_ratio
+    ratio_valid_adjusted = valid_ratio / ratio_remaining
+
+    train_after, valid = train_test_split(train_before, test_size=ratio_valid_adjusted)
+
+    save_coco(train_json_name, info, licenses, train_after, filter_annotations(annotations, train_after), categories)
+    save_coco(test_json_name, info, licenses, test, filter_annotations(annotations, test), categories)
+    save_coco(valid_json_name, info, licenses, valid, filter_annotations(annotations, valid), categories)
+
+    print("Saved {} entries in {} and {} in {} and {} in {}".format(len(train_after), train_json_name,len(valid), valid_json_name, len(test), test_json_name))
+    return (train_json_name,valid_json_name,test_json_name)
+
+def save_coco(file, info, licenses, images, annotations, categories):
+  with open(file, 'wt', encoding='UTF-8') as coco:
+    json.dump({ 'info': info, 'licenses': licenses, 'images': images, 
+        'annotations': annotations, 'categories': categories}, coco, indent=2, sort_keys=True)
+
+
+def filter_annotations(annotations, images):
+  image_ids = lmap(lambda i: int(i['id']), images)
+  return lfilter(lambda a: int(a['image_id']) in image_ids, annotations)
 # Function to convert images to YOLO format
 def convert_to_yolo(input_images_path, input_json_path, output_images_path, output_labels_path):
     # Open JSON file containing image annotations
