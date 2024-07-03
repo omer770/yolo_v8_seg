@@ -2,6 +2,7 @@ import json
 import os
 import shutil
 import yaml
+from tqdm.auto import tqdm
 from funcy import lmap, lfilter, lremove
 from sklearn.model_selection import train_test_split
 
@@ -82,26 +83,27 @@ def save_coco(file, info, licenses, images, annotations, categories):
 def filter_annotations(annotations, images):
   image_ids = lmap(lambda i: int(i['id']), images)
   return lfilter(lambda a: int(a['image_id']) in image_ids, annotations)
-# Function to convert images to YOLO format
-def convert_to_yolo(input_images_path, input_json_path, output_images_path, output_labels_path):
+  
+def convert_to_yolo(input_images_path:str, input_json_path:str, output_path:str,suffix_images_2_path:str=''):
+    '''
+    Convert COCO annotations to YOLOv8
+    input_images_path: Path to the directory containing the images
+    input_json_path: Path to the JSON file containing the annotations
+    output_path: Path to the directory where the converted files will be saved
+    eg: output_path ='/content/yolo_v8_seg/data/train'
+    suffix_images_2_path: Path to the directory containing the images (optional)
+
+    '''
     # Open JSON file containing image annotations
-    f = open(input_json_path)
-    data = json.load(f)
-    f.close()
+
+    with open(input_json_path, 'rt', encoding='UTF-8') as f:
+      data = json.load(f)
+    output_images_path = os.path.join(output_path, 'images')
+    output_labels_path = os.path.join(output_path, 'labels')
 
     # Create directories for output images and labels
     os.makedirs(output_images_path, exist_ok=True)
     os.makedirs(output_labels_path, exist_ok=True)
-
-    # List to store filenames
-    file_names = []
-    for filename in os.listdir(input_images_path):
-        if filename.endswith(".jpg"):
-            source = os.path.join(input_images_path, filename)
-            destination = os.path.join(output_images_path, filename)
-            shutil.copy(source, destination)
-            file_names.append(filename)
-
     # Function to get image annotations
     def get_img_ann(image_id):
         return [ann for ann in data['annotations'] if ann['image_id'] == image_id]
@@ -109,10 +111,19 @@ def convert_to_yolo(input_images_path, input_json_path, output_images_path, outp
     # Function to get image data
     def get_img(filename):
         return next((img for img in data['images'] if img['file_name'] == filename), None)
-
+    # List to store filenames
+    file_names = []
+    for filename in tqdm(os.listdir(input_images_path),desc="Scanning files"):
+        if filename.endswith(".jpg"):
+            source = os.path.join(input_images_path, filename)
+            destination = os.path.join(output_images_path, filename)
+            if get_img(os.path.join(suffix_images_2_path,filename)):
+              shutil.copy(source, destination)
+              file_names.append(filename)
+    assert len(file_names) > 0, f"No images found in {input_images_path},Use 'suffix_images_2_path' for adding suffix for search"
     # Iterate through filenames and process each image
-    for filename in file_names:
-        img = get_img(filename)
+    for filename in tqdm(file_names,desc="Processing files"):
+        img = get_img(os.path.join(suffix_images_2_path,filename))
         img_id = img['id']
         img_w = img['width']
         img_h = img['height']
@@ -126,7 +137,8 @@ def convert_to_yolo(input_images_path, input_json_path, output_images_path, outp
                     polygon = ann['segmentation'][0]
                     normalized_polygon = [format(coord / img_w if i % 2 == 0 else coord / img_h, '.6f') for i, coord in enumerate(polygon)]
                     file_object.write(f"{current_category} " + " ".join(normalized_polygon) + "\n")
-
+    print(f"Converted {len(file_names)} images to YOLOv8 format")
+    return output_path
 # Function to create a YAML file for the dataset
 def create_yaml(input_json_path, output_yaml_path, train_path, val_path, test_path=None):
     with open(input_json_path) as f:
@@ -151,6 +163,8 @@ def create_yaml(input_json_path, output_yaml_path, train_path, val_path, test_pa
     with open(output_yaml_path, 'w') as file:
         yaml.dump(yaml_data, file, default_flow_style=False)
 
+    print(f"YAML file created at {output_yaml_path}")
+    return output_yaml_path
 
 if __name__ == "__main__":
     base_input_path = "/home/ubuntu/workspace/ml-datasets/dataset/"
