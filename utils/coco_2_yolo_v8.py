@@ -25,7 +25,7 @@ def split_coco_annotations(annotations_path, train_val_test_split: tuple = (0.75
       filter_unannotated: Whether to keep only images with annotations (default: False).
 
   Returns:
-      None
+      tuple(train_json_name,valid_json_name,test_json_name)
   """
   if type(train_val_test_split) == float:
     len_tvt =  1
