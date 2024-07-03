@@ -167,32 +167,27 @@ def create_yaml(input_json_path, output_yaml_path, train_path, val_path, test_pa
     return output_yaml_path
 
 if __name__ == "__main__":
-    base_input_path = "/home/ubuntu/workspace/ml-datasets/dataset/"
-    base_output_path = "/home/ubuntu/workspace/ml-datasets/yolo_dataset/"
-    #/home/ubuntu/workspace/ml-datasets/dataset/yolo-data/images/train
-    #/home/ubuntu/workspace/ml-datasets/dataset/yolo-data/annotations/val.json
-
+    base_input_path = "coco_dataset/"
+    base_output_path = "yolo_dataset/"
     # Processing validation dataset (if needed)
     convert_to_yolo(
-        input_images_path=os.path.join(base_input_path, "yolo-data/images/val"),
-        input_json_path=os.path.join(base_input_path, "yolo-data/annotations/val.json"),
-        output_images_path=os.path.join(base_output_path, "valid/images"),
-        output_labels_path=os.path.join(base_output_path, "valid/labels")
+        input_images_path=os.path.join(base_input_path, "data/images/val"),
+        input_json_path=os.path.join(base_input_path, "data/annotations/val.json"),
+        output_path=os.path.join(base_output_path, "valid")
     )
 
     # Processing training dataset 
     convert_to_yolo(
-        input_images_path=os.path.join(base_input_path, "yolo-data/images/train"),
-        input_json_path=os.path.join(base_input_path, "yolo-data/annotations/train.json"),
-        output_images_path=os.path.join(base_output_path, "train/images"),
-        output_labels_path=os.path.join(base_output_path, "train/labels")
+        input_images_path=os.path.join(base_input_path, "data/images/test"),
+        input_json_path=os.path.join(base_input_path, "data/annotations/test.json"),
+        output_path=os.path.join(base_output_path, "test")
     )
     
     # Creating the YAML configuration file
     create_yaml(
-        input_json_path=os.path.join(base_input_path, "yolo-data/annotations/train.json"),
+        input_json_path=os.path.join(base_input_path, "data/annotations/train.json"),
         output_yaml_path=os.path.join(base_output_path, "data.yaml"),
-        train_path="/home/ubuntu/workspace/ml-datasets/dataset/yolo-data/images/train",
-        val_path="/home/ubuntu/workspace/ml-datasets/dataset/yolo-data/images/val",
+        train_path=base_output_path+"/data/images/train",
+        val_path=base_output_path+"data/images/val",
         test_path= None#'../test/images'  # or None if not applicable
     )
