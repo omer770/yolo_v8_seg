@@ -1,4 +1,5 @@
 import json
+import os
 import numpy as np
 
 class NumpyEncoder(json.JSONEncoder):
@@ -16,8 +17,9 @@ class NumpyEncoder(json.JSONEncoder):
         elif isinstance(obj, bytes):
             return obj.decode('utf-8')
         return json.JSONEncoder.default(self, obj)
+
 def print_structure(d, indent=0):
-    """Print the structure of a dictionary or list."""
+    """Prints the structure of a dictionary or list."""
 
     # If the input is a dictionary
     if isinstance(d, dict):
@@ -30,17 +32,20 @@ def print_structure(d, indent=0):
         print('  ' * indent + "[List of length {} containing:]".format(len(d)))
         if d:
             print_structure(d[0], indent+1)
+    else:
+        print('  ' * indent + str(type(d)).replace('<','').replace('>','').replace(' ',':'))
           
 def retrive_json_object(json_file):
   assert json_file.split('.')[-1] == 'json' , f"Provide a Json extention filename, provided-'{json_file}' "
-  with open(json_file, 'r') as openfile:
-    # Reading from json file
-    json_object = json.load(openfile)
+  json_object = json.loads(json_file, cls=NumpyDecoder )
   return json_object
 
 def export_json_file(json_object,filename):
   assert filename.split('.')[-1] == 'json' , f"Provide a Json extention filename, provided-'{filename}' "
-  dumped = json.dumps(filename, cls=NumpyEncoder)
+  if os.path.exists(filename):
+    os.remove(filename)
+  # Open the file and read its content
+  dumped = json.dumps(json_object, cls=NumpyEncoder)
   with open(filename, 'a') as f:
       f.write(dumped + '\n')
   print("Saved- ",filename)
