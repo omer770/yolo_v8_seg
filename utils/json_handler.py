@@ -37,7 +37,7 @@ def print_structure(d, indent=0):
           
 def retrive_json_object(json_file):
   assert json_file.split('.')[-1] == 'json' , f"Provide a Json extention filename, provided-'{json_file}' "
-  json_object = json.loads(json_file, cls=NumpyDecoder )
+  json_object = json.loads(json_file)
   return json_object
 
 def export_json_file(json_object,filename):
