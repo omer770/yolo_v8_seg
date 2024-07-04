@@ -37,7 +37,12 @@ def print_structure(d, indent=0):
           
 def retrive_json_object(json_file):
   assert json_file.split('.')[-1] == 'json' , f"Provide a Json extention filename, provided-'{json_file}' "
-  json_object = json.loads(json_file)
+  # Open the JSON file and read its content
+  with open(json_file, 'r') as f:
+    json_string = f.read()
+  
+  # Decode the JSON string into a Python object
+  json_object = json.loads(json_string)
   return json_object
 
 def export_json_file(json_object,filename):
