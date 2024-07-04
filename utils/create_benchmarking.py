@@ -23,28 +23,32 @@ def read_segmentation_labels(label_path:Path, classes:list):
 
 def generate_benchmarking_json(model,test_dir_path:Path, yaml_path:Path = None , is_label_present=None):
 
-  test_dir_items = os.listdir(test_dir_path)
+  test_images_path = os.path.join(test_dir_path,'images')
+  test_dir_images_items = os.listdir(test_images_path)
   dict_i, dict_a= {},{}
   #annotations
   if is_label_present:
     assert yaml_path , "Provide path to yaml using 'yaml_path'"
-    test_label_path = test_dir_path.parent/'labels'
+    test_label_path = os.path.join(test_dir_path,'labels')
     test_label_items = os.listdir(test_label_path)
     
     with open(yaml_path, 'r') as stream:
       classes = yaml.safe_load(stream)['names']
     for i in tqdm(range(len(test_label_items))):
-      label_dicts = read_segmentation_labels(test_label_path/test_label_items[i],classes)
+      label_dicts = read_segmentation_labels(os.path.join(test_label_path,test_label_items[i]),classes)
       dict_a[test_label_items[i]] = label_dicts
   #Predictions
-  for i in tqdm(range(len(test_dir_items))):
+  for i in tqdm(range(len(test_dir_images_items))):
     dict_j = {}
-    predicts = model.predict(os.path.join(test_dir_path,test_dir_items[i]) , conf=0.3)
+    #predict 
+    predicts = model.predict(os.path.join(test_images_path,test_dir_images_items[i]) , conf=0.3,verbose=False)
     bbox = predicts[0].boxes.data[:,:-1]
     cls_id = predicts[0].boxes.data[:,-1]
     cls_rows = [list(predicts[0].names.values())[int(x)] for x in cls_id ]
     confidence = list(predicts[0].boxes.conf.cpu().numpy())
     for j in range(len(cls_rows)):
-      dict_j[j] = {'classname':cls_rows[j],'confidence': confidence[j],'segmentation': predicts[0].masks.xyn[j]}
-    dict_i[test_dir_items[i]] = dict_j
+      dict_j[j] = {'classname':cls_rows[j],'confidence': confidence[j],
+                   'segmentation': predicts[0].masks.xyn[j],
+                   'bbox': bbox}
+    dict_i[test_dir_images_items[i]] = dict_j
   return dict_i, dict_a 
