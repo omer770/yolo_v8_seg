@@ -36,7 +36,7 @@ def generate_benchmarking_json(model,test_dir_path:Path, yaml_path:Path = None ,
       classes = yaml.safe_load(stream)['names']
     for i in tqdm(range(len(test_label_items))):
       label_dicts = read_segmentation_labels(os.path.join(test_label_path,test_label_items[i]),classes)
-      dict_a[test_label_items[i]] = label_dicts
+      dict_a[test_label_items[i].replace('.txt','.jpg'] = label_dicts
   #Predictions
   for i in tqdm(range(len(test_dir_images_items))):
     dict_j = {}
