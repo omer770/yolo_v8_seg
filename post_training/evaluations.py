@@ -224,6 +224,7 @@ def calculate_maP(df_ap_class, classes, iou_threshold,verbose:bool=False,warn_em
   aP = {}
   maP = 0
   ap_df = {}
+  count_zeros = 0
   for cls in classes:
     if cls in df_ap_class.keys():
       df_ap_graph = df_ap_class[cls]
@@ -235,8 +236,9 @@ def calculate_maP(df_ap_class, classes, iou_threshold,verbose:bool=False,warn_em
         if warn_empty_class: print(f"Warning: Not enough data points to calculate AUC for class {cls}")
         aP[cls] = 0  # Or handle this case differently as needed
         ap_df[cls] = None
+        count_zeros +=1
   if aP:  # Check if aP dictionary is not empty
-    maP = round(sum(aP.values())/len(aP),3)
+    maP = round(sum(aP.values())/(len(aP)-count_zeros),3)
   if verbose:
     print("The iou threshold of the model ",iou_threshold)
     print("The aP of the model ",aP)
