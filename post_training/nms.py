@@ -89,17 +89,18 @@ def non_max_sup(pred_dict, conf_threshold, nms_threshold, verbose=False,return_d
     # Perform NMS on remaining detections
     for i, det_i in enumerate(detections_to_keep):
       for j, det_j in enumerate(detections_to_keep[i + 1:]):
-        try: iou_nms = calculate_iou(det_i[1]['segmentation'], det_j[1]['segmentation'])
-        except: removed_detections.append(det_j[0])
-        if iou_nms >= nms_threshold:
-          # Remove detection with lower confidence
-          removed_detections.append(det_j[0])
+        try: 
+          iou_nms = calculate_iou(det_i[1]['segmentation'], det_j[1]['segmentation'])
+          if iou_nms >= nms_threshold:
+            # Remove detection with lower confidence
+            removed_detections.append(det_j[0])
           try:
             del pred_object[fname][det_j[0]]  # Remove detection from original dictionary
           except KeyError:
             pass  # Ignore if key already removed
           if verbose:
             print(f"\tFile - {fname}: Removed detection '{det_j[0]}' (iou: {iou_nms:.4f})")
+        except: removed_detections.append(det_j[0])
 
     # Update remove dictionary with names of removed detections
     remove_dict[fname] = removed_detections
